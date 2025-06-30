@@ -14,32 +14,69 @@ const express = require("express");
   app.use(express.json());
 
   // File upload setup
-  const upload = multer({ dest: "uploads/" });
-
-  // Hugging Face API call
-  const summarizeText = async (text) => {
-    try {
-      const response = await axios.post(
-        "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
-        { inputs: text, parameters: { max_length: 100, min_length: 30 } },
-        { headers: { Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}` } }
-      );
-      console.log("API response:", response.data); // Debug
-      if (response.data && response.data[0] && response.data[0].summary_text) {
-        return response.data[0].summary_text;
-      }
-      return "No summary returned by API";
-    } catch (error) {
-      console.error("API error:", error.message, error.response?.data);
-      if (error.response?.status === 429) {
-        return "Mock summary due to rate limit";
-      }
-      if (error.response?.status === 503) {
-        return "Model is loading, please try again";
-      }
-      return "Error summarizing text";
+  // File upload setup with .pdf extension
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, "uploads/");
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, `${file.fieldname}-${uniqueSuffix}.pdf`); // Ensure .pdf extension
     }
-  };
+  });
+  const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.includes("pdf")) {
+        cb(null, true);
+      } else {
+        cb(new Error("Invalid file format, only PDFs allowed"), false);
+      }
+    }
+  });
+  
+  // Hugging Face API call
+const summarizeText = async (text) => {
+  try {
+    const response = await axios.post(
+      "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
+      { inputs: text, parameters: { max_length: 200, min_length: 50 } },
+      { headers: { Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}` } }
+    );
+    console.log("API response:", response.data); // Debug
+    return response.data[0]?.summary_text || "No summary returned";
+  } catch (error) {
+    console.error("API error:", error.message, error.response?.data);
+    if (error.response?.status === 429) return "Mock summary due to rate limit";
+    if (error.response?.status === 503) return "Model is loading, please try again";
+    return "Error summarizing text";
+  }
+};
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  if (!req.file.mimetype.includes("pdf")) return res.status(400).json({ error: "Invalid file format" });
+
+  try {
+    const dataBuffer = fs.readFileSync(req.file.path);
+    const pdfData = await PDFParser(dataBuffer);
+    const text = pdfData.text.slice(0, 1000);
+    console.log("Extracted text:", text); // Debug
+    const summary = await summarizeText(text);
+    const keyPoints = summary.split(". ").slice(0, 3).map((p, i) => `Point ${i + 1}: ${p}`);
+    const actions = ["Review document for compliance", "Share summary with team"];
+    res.json({ summary, keyPoints, actions });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Server error" });
+  } finally {
+    if (req.file) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error("Failed to delete file:", err);
+      });
+    }
+  }
+});
 
   // Test API route
   app.get("/test-api", async (req, res) => {
@@ -49,27 +86,6 @@ const express = require("express");
       res.json({ summary });
     } catch (error) {
       res.status(500).json({ error: "Failed to call Hugging Face API" });
-    }
-  });
-
-  // PDF upload route
-  app.post("/upload", upload.single("file"), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    if (!req.file.mimetype.includes("pdf")) return res.status(400).json({ error: "Invalid file format" });
-
-    try {
-      const dataBuffer = fs.readFileSync(req.file.path);
-      const pdfData = await PDFParser(dataBuffer);
-      const text = pdfData.text.slice(0, 1000);
-
-      const summary = await summarizeText(text);
-      const keyPoints = summary.split(". ").slice(0, 3).map((p, i) => `Point ${i + 1}: ${p}`);
-      const actions = ["Review document for compliance", "Share summary with team"];
-
-      res.json({ summary, keyPoints, actions });
-    } catch (error) {
-      console.error("Error:", error.message);
-      res.status(500).json({ error: "Server error" });
     }
   });
 
