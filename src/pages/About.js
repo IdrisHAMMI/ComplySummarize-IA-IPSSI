@@ -10,9 +10,9 @@ const About = () => {
             </p>
             <h3>Contact</h3>
             <ul>
-                <li>👨 Zakaria Hajji</li>
-                <li>📧 contact@complysummarize.com</li>
-                <li>📍 Lille, France</li>
+                <li>👨 Zakaria - William ...... </li>
+                <li>📧 contact@ipssi.com</li>
+                <li>📍 France</li>
             </ul>
         </div>
     );
