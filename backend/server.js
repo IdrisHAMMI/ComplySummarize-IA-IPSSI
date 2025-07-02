@@ -169,6 +169,28 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+  app.post("/summarize", async (req, res) => {
+    try {
+      const { text } = req.body;
+      if (!text || typeof text !== "string" || text.length < 10) {
+        return res.status(400).json({ error: "Invalid or missing text input" });
+      }
+      const sanitizedText = text.slice(0, 1000).replace(/[^\w\s.,]/g, "");
+      console.log("Received text length:", sanitizedText.length);
+      const summary = await summarizeText(sanitizedText);
+      const keyPoints = summary.split(". ").slice(0, 3).map((p, i) => `Point ${i + 1}: ${p}`);
+      const suggestedActions = [
+        { action: "Review summarized content for accuracy", priority: "high" },
+        { action: "Share summary with stakeholders", priority: "medium" }
+      ];
+      const metadata = { processedAt: new Date().toISOString() };
+      res.json({ summary, keyPoints, suggestedActions, metadata });
+    } catch (error) {
+      console.error("Summarize error:", error.message, error.stack);
+      res.status(500).json({ error: error.message || "Server error" });
+    }
+  });
+
 // Test API route
 app.get("/test-api", async (req, res) => {
   const testText = "Project management involves planning, executing, and monitoring tasks to achieve goals. Effective project managers use tools like Jira or Trello to track progress. Automation tools, such as CI/CD pipelines, can streamline repetitive processes, saving time and reducing errors in software development. The key to successful project management lies in clear communication, realistic timeline setting, and continuous adaptation to changing requirements. Modern project management also emphasizes agile methodologies, which allow for iterative development and quick response to feedback.";
