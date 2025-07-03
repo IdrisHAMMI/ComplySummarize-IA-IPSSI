@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Pour un vrai projet, remplacez par votre endpoint API
-const API_URL = 'http://localhost:8081/upload';
+const API_URL = 'http://localhost:5000/upload';
 
 export const analyzeDocument = async (file) => {
   const formData = new FormData();
