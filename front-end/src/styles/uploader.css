@@ -1,0 +1,49 @@
+.uploader-container {
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.upload-zone {
+  border: 2px dashed var(--light-gray);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  transition: all 0.3s ease;
+  background-color: var(--light);
+  cursor: pointer;
+}
+
+.upload-zone.active {
+  border-color: var(--primary);
+  background-color: rgba(67, 97, 238, 0.05);
+}
+
+.upload-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-md);
+  color: var(--primary);
+}
+
+.upload-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.pdf-preview {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--light);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-count {
+  color: var(--gray);
+  font-size: 0.9rem;
+  margin-top: var(--space-sm);
+}
